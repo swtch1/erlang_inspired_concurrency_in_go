@@ -8,7 +8,7 @@ import (
 )
 
 func TestKVStore(t *testing.T) {
-	kv := NewKVStore()
+	kv := NewSafeStore()
 
 	// create some concurrency that will fail when the race detector runs if not
 	// handled properly

@@ -15,7 +15,7 @@ type kvEvent struct {
 	ok bool
 }
 
-// KVStore is a thread safe wrapper of kvStore that uses an Erlang-inspired
+// SafeStore is a thread safe wrapper of kvStore that uses an Erlang-inspired
 // model for allowing concurrent operations by passing messages to a synchronous
 // process.  This is much like the actor model, but a contrived implementation
 // which is intended to more closely model (my limited understanding of)
@@ -23,15 +23,15 @@ type kvEvent struct {
 //
 // Ideas inspired from
 // https://stevana.github.io/erlangs_not_about_lightweight_processes_and_message_passing.html
-type KVStore struct {
-	inner *kvStore
+type SafeStore struct {
+	inner *dangerousStore
 	in    chan kvEvent
 	out   chan kvEvent
 }
 
-func NewKVStore() *KVStore {
-	kvstore := &KVStore{
-		inner: newkvStore(),
+func NewSafeStore() *SafeStore {
+	kvstore := &SafeStore{
+		inner: newDangerousStore(),
 		in:    make(chan kvEvent),
 		out:   make(chan kvEvent),
 	}
@@ -59,7 +59,7 @@ func NewKVStore() *KVStore {
 	return kvstore
 }
 
-func (s *KVStore) Store(k, v string) {
+func (s *SafeStore) Store(k, v string) {
 	s.in <- kvEvent{
 		op: opStore,
 		k:  k,
@@ -68,31 +68,11 @@ func (s *KVStore) Store(k, v string) {
 	<-s.out
 }
 
-func (s *KVStore) Load(k string) (string, bool) {
+func (s *SafeStore) Load(k string) (string, bool) {
 	s.in <- kvEvent{
 		op: opLoad,
 		k:  k,
 	}
 	res := <-s.out
 	return res.v, res.ok
-}
-
-// kvStore stores and loads key / value pairs.  It is not thread safe.
-type kvStore struct {
-	data map[string]string
-}
-
-func newkvStore() *kvStore {
-	return &kvStore{
-		data: make(map[string]string),
-	}
-}
-
-func (s *kvStore) Store(k, v string) {
-	s.data[k] = v
-}
-
-func (s *kvStore) Load(k string) (string, bool) {
-	v, ok := s.data[k]
-	return v, ok
 }
