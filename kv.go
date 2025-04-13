@@ -36,6 +36,8 @@ func NewKVStore() *KVStore {
 		out:   make(chan kvEvent),
 	}
 
+	// The goroutine handles all operations synchronously by passing messages to
+	// the inner kvStore.
 	go func() {
 		for event := range kvstore.in {
 			switch event.op {
